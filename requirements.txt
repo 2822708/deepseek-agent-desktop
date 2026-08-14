@@ -1,0 +1,6 @@
+# pythonnet 3.0.4+ 只有源码包(需 .NET SDK 编译)，这里固定到有 wheel 的 3.0.3
+pythonnet==3.0.3
+clr-loader==0.2.6
+pywebview==6.2.1
+pystray==0.19.5
+pillow>=10.0.0

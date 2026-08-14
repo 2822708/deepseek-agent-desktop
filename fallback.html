@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeepSeek Agent — 未连接</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    background: radial-gradient(1200px 800px at 50% -10%, #16233f 0%, #0d1117 55%, #080b10 100%);
+    color: #e6edf3;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none;
+  }
+  .card {
+    width: min(480px, 88vw);
+    background: rgba(22, 27, 34, .85);
+    border: 1px solid #2d333b;
+    border-radius: 16px;
+    padding: 36px 32px 28px;
+    text-align: center;
+    box-shadow: 0 24px 64px rgba(0,0,0,.45);
+  }
+  .logo {
+    width: 64px; height: 64px; margin: 0 auto 18px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #4c6ef5, #7950f2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px; font-weight: 800; color: #fff;
+    box-shadow: 0 8px 24px rgba(76,110,245,.35);
+  }
+  h1 { font-size: 20px; font-weight: 600; letter-spacing: .5px; }
+  .status { margin: 14px 0 4px; font-size: 13px; color: #8b949e; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+         background: #f85149; margin-right: 6px; vertical-align: 1px;
+         animation: pulse 1.6s ease-in-out infinite; }
+  .dot.ok { background: #3fb950; animation: none; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .url { font-family: Consolas, monospace; font-size: 12px; color: #6e7681;
+         background: #161b22; border: 1px solid #21262d; border-radius: 8px;
+         padding: 8px 12px; margin: 16px 0 20px; display: inline-block; }
+  .btns { display: flex; gap: 10px; justify-content: center; }
+  button {
+    border: none; border-radius: 10px; padding: 10px 20px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: transform .08s ease, opacity .15s ease;
+    font-family: inherit;
+  }
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .5; cursor: default; }
+  .primary { background: linear-gradient(135deg, #4c6ef5, #7950f2); color: #fff; }
+  .primary:hover:not(:disabled) { filter: brightness(1.1); }
+  .ghost { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+  .ghost:hover:not(:disabled) { background: #262c36; }
+  .hint { margin-top: 16px; font-size: 12px; color: #6e7681; line-height: 1.7; }
+  .hint code { font-family: Consolas, monospace; color: #8b949e;
+               background: #161b22; padding: 1px 6px; border-radius: 5px; }
+  #msg { min-height: 18px; margin-top: 14px; font-size: 12.5px; color: #d29922; }
+  .stats {
+    margin-top: 14px; padding: 10px 14px;
+    background: #161b22; border: 1px solid #21262d; border-radius: 8px;
+    font-size: 11.5px; color: #6e7681; line-height: 1.8;
+    display: flex; justify-content: space-between;
+  }
+  .stats span b { color: #8b949e; font-weight: 600; }
+  .settings {
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid #21262d;
+    display: flex; gap: 8px; align-items: center; justify-content: center;
+  }
+  .settings input {
+    flex: 1; max-width: 220px;
+    background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
+    color: #c9d1d9; font-size: 12px; padding: 6px 10px;
+    font-family: Consolas, monospace; outline: none;
+  }
+  .settings input:focus { border-color: #4c6ef5; }
+  .settings button {
+    padding: 6px 12px; font-size: 12px; border-radius: 8px;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">D</div>
+    <h1>DeepSeek Agent 桌面版</h1>
+    <p class="status"><span class="dot" id="dot"></span><span id="statusText">未连接到 DSH 后端</span></p>
+    <div class="url" id="urlDisplay"></div>
+    <div class="btns">
+      <button class="primary" id="retry">重试连接</button>
+      <button class="ghost" id="launch">启动后端</button>
+    </div>
+    <div id="msg"></div>
+    <div class="stats">
+      <span>探测 <b id="retryCount">0</b> 次</span>
+      <span>延迟 <b id="latency">—</b></span>
+      <span>上次 <b id="lastCheck">—</b></span>
+    </div>
+    <div class="settings">
+      <input type="text" id="urlInput" placeholder="后端地址" />
+      <button class="ghost" id="applyUrl">应用</button>
+    </div>
+    <p class="hint">
+      后端是 DeepSeek Harness 的 Web 服务。<br>
+      也可以在终端运行 <code>dsh web</code> 手动启动。
+    </p>
+  </div>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const msg = $('msg');
+  const dot = $('dot');
+  const statusText = $('statusText');
+
+  let retryCount = 0;
+  let autoTimer = null;
+  let currentUrl = '';
+
+  function updateUrlDisplay(url) {
+    currentUrl = url;
+    $('urlDisplay').textContent = url;
+    $('urlInput').value = url;
+  }
+
+  function setStatus(online) {
+    if (online) {
+      dot.classList.add('ok');
+      statusText.textContent = '已连接';
+    } else {
+      dot.classList.remove('ok');
+      statusText.textContent = '未连接到 DSH 后端';
+    }
+  }
+
+  async function check() {
+    retryCount++;
+    $('retryCount').textContent = retryCount;
+    $('retry').disabled = $('launch').disabled = true;
+
+    const start = performance.now();
+    try {
+      const up = await window.pywebview.api.backend_up();
+      const elapsed = Math.round(performance.now() - start);
+      $('latency').textContent = elapsed + 'ms';
+      $('lastCheck').textContent = new Date().toLocaleTimeString();
+
+      if (up) {
+        setStatus(true);
+        msg.textContent = '后端就绪，正在跳转…';
+        stopAutoPoll();
+        setTimeout(() => { window.location.href = currentUrl; }, 300);
+      } else {
+        setStatus(false);
+        msg.textContent = '后端仍未就绪，请确认 dsh web 已启动。';
+      }
+    } catch (e) {
+      $('latency').textContent = '—';
+      setStatus(false);
+      msg.textContent = '无法调用本地接口: ' + e.message;
+    } finally {
+      $('retry').disabled = $('launch').disabled = false;
+    }
+  }
+
+  async function launch() {
+    msg.textContent = '正在启动后端…';
+    $('launch').disabled = true;
+    try {
+      const r = await window.pywebview.api.launch_backend();
+      if (r === 'launched') {
+        msg.textContent = '启动指令已发出，等待后端就绪…';
+        setTimeout(check, 2500);
+      } else if (r === 'no-dsh') {
+        msg.textContent = '未找到 dsh 命令，请在终端手动运行 dsh web。';
+      } else {
+        msg.textContent = '启动失败: ' + r;
+      }
+    } catch (e) {
+      msg.textContent = '启动出错: ' + e.message;
+    } finally {
+      $('launch').disabled = false;
+    }
+  }
+
+  function startAutoPoll() {
+    if (autoTimer) return;
+    autoTimer = setInterval(check, 3000);
+  }
+
+  function stopAutoPoll() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  }
+
+  async function applyUrl() {
+    const newUrl = $('urlInput').value.trim();
+    if (!newUrl) { msg.textContent = '地址不能为空'; return; }
+    try {
+      const ok = await window.pywebview.api.set_backend_url(newUrl);
+      if (ok) {
+        updateUrlDisplay(newUrl);
+        msg.textContent = '后端地址已更新';
+        retryCount = 0;
+        $('retryCount').textContent = '0';
+        check();
+      } else {
+        msg.textContent = '更新失败';
+      }
+    } catch (e) {
+      msg.textContent = '更新出错: ' + e.message;
+    }
+  }
+
+  // init
+  updateUrlDisplay('$backend_url');
+  setStatus(false);
+  $('retry').addEventListener('click', () => { check(); startAutoPoll(); });
+  $('launch').addEventListener('click', launch);
+  $('applyUrl').addEventListener('click', applyUrl);
+  $('urlInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') applyUrl(); });
+  startAutoPoll();
+</script>
+</body>
+</html>
