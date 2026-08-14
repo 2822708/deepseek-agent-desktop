@@ -7,10 +7,8 @@
 
 !if "${ARCH}" == "x64"
   !define ARCH_LABEL "x64"
-  !define INSTALL_DIR "$PROGRAMFILES64"
 !else
   !define ARCH_LABEL "x86"
-  !define INSTALL_DIR "$PROGRAMFILES32"
 !endif
 
 Name "DeepSeek Agent Desktop"
@@ -30,6 +28,7 @@ VIProductVersion "1.1.0.0"
 
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
+!include "Sections.nsh"
 
 !define MUI_ICON "app.ico"
 !define MUI_UNICON "app.ico"
@@ -38,6 +37,7 @@ VIProductVersion "1.1.0.0"
 !define MUI_FINISHPAGE_RUN_TEXT "Launch DeepSeek Agent Desktop"
 !define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\README.md"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "View README"
+!define MUI_FINISHPAGE_TITLE "Installation Complete"
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
@@ -51,6 +51,15 @@ VIProductVersion "1.1.0.0"
 
 !insertmacro MUI_LANGUAGE "SimpChinese"
 !insertmacro MUI_LANGUAGE "English"
+
+; --- Custom install path ---
+!define APP_DIR_NAME "DeepSeekAgentDesktop"
+
+; Initial directory: $PROGRAMFILES\DeepSeekAgentDesktop
+InstallDir "$PROGRAMFILES\${APP_DIR_NAME}"
+; Allow user to browse for a parent folder; we always append ${APP_DIR_NAME}
+
+!define MUI_DIRECTORYPAGE_VERIFYONLEAVE
 
 Var WebView2Needed
 Var DotNetNeeded
@@ -110,7 +119,22 @@ Function StrStr
   Exch $R1
 FunctionEnd
 
-Section "Install" SecInstall
+; --- Append subfolder to user-selected path ---
+Function .onVerifyInstDir
+  ; If user-selected path does NOT end with \${APP_DIR_NAME}, append it
+  ${If} ${ARCH} == "x64"
+    ${If} $INSTDIR == "$PROGRAMFILES"
+      StrCpy $INSTDIR "$PROGRAMFILES\${APP_DIR_NAME}"
+    ${EndIf}
+  ${Else}
+    ${If} $INSTDIR == "$PROGRAMFILES32"
+      StrCpy $INSTDIR "$PROGRAMFILES32\${APP_DIR_NAME}"
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+; --- Install Section ---
+Section "Install (required)" SecInstall
   SectionIn RO
   SetOutPath "$INSTDIR"
 
@@ -180,23 +204,38 @@ Section "Install" SecInstall
   WriteRegDWORD SHCTX "Software\Microsoft\Windows\CurrentVersion\Uninstall\DeepSeekAgentDesktop" "NoRepair" 1
   WriteRegDWORD SHCTX "Software\Microsoft\Windows\CurrentVersion\Uninstall\DeepSeekAgentDesktop" "EstimatedSize" 21000
 
+  ; Start Menu shortcuts
   CreateDirectory "$SMPROGRAMS\DeepSeek Agent"
   CreateShortcut "$SMPROGRAMS\DeepSeek Agent\DeepSeek Agent.lnk" "$INSTDIR\DeepSeekAgentDesktop.exe" "" "$INSTDIR\app.ico"
   CreateShortcut "$SMPROGRAMS\DeepSeek Agent\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\app.ico"
-  CreateShortcut "$DESKTOP\DeepSeek Agent.lnk" "$INSTDIR\DeepSeekAgentDesktop.exe" "" "$INSTDIR\app.ico"
-
-  SetAutoClose True
 SectionEnd
 
+; --- Optional: Desktop shortcut (default ON) ---
+Section "Desktop shortcut" SecDesktop
+  SectionIn 1  ; default checked (1 = selected)
+  CreateShortcut "$DESKTOP\DeepSeek Agent.lnk" "$INSTDIR\DeepSeekAgentDesktop.exe" "" "$INSTDIR\app.ico"
+SectionEnd
+
+; --- Optional: Auto-start with Windows (default OFF) ---
 Section "Auto-start with Windows" SecAutoStart
   CreateShortcut "$SMSTARTUP\DeepSeek Agent.lnk" "$INSTDIR\DeepSeekAgentDesktop.exe" "" "$INSTDIR\app.ico"
 SectionEnd
 
+; --- Descriptions ---
+LangString DESC_SecInstall ${LANG_SIMPCHINESE} "DeepSeek Agent Desktop (with WebView2 and .NET runtime auto-install)"
+LangString DESC_SecInstall ${LANG_ENGLISH} "DeepSeek Agent Desktop core application (includes WebView2 and .NET runtime auto-install)"
+LangString DESC_SecDesktop ${LANG_SIMPCHINESE} "Create desktop shortcut"
+LangString DESC_SecDesktop ${LANG_ENGLISH} "Create a DeepSeek Agent shortcut on the Desktop"
+LangString DESC_SecAutoStart ${LANG_SIMPCHINESE} "Auto-start with Windows"
+LangString DESC_SecAutoStart ${LANG_ENGLISH} "Start DeepSeek Agent automatically when Windows starts"
+
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-!insertmacro MUI_DESCRIPTION_TEXT ${SecInstall} "DeepSeek Agent Desktop (with WebView2 and .NET runtime auto-install)"
-!insertmacro MUI_DESCRIPTION_TEXT ${SecAutoStart} "Start DeepSeek Agent automatically when Windows starts"
+!insertmacro MUI_DESCRIPTION_TEXT ${SecInstall} $(DESC_SecInstall)
+!insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} $(DESC_SecDesktop)
+!insertmacro MUI_DESCRIPTION_TEXT ${SecAutoStart} $(DESC_SecAutoStart)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
+; --- Uninstall Section ---
 Section "Uninstall"
   nsExec::ExecToLog 'taskkill /F /IM DeepSeekAgentDesktop.exe /T'
   Delete "$INSTDIR\DeepSeekAgentDesktop.exe"
