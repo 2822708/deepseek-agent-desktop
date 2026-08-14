@@ -167,12 +167,19 @@ function Build-Arch {
 
     $venvDir = Join-Path $root $VenvName
 
-    # 1. Create venv
-    if (-not (Test-Path $venvDir)) {
+    # 1. Create venv (skip for embeddable Python which lacks venv module)
+    $py = $PythonExe
+    $isEmbeddable = $false
+    try { & $PythonExe -c "import venv" 2>$null; if ($LASTEXITCODE -ne 0) { $isEmbeddable = $true } } catch { $isEmbeddable = $true }
+    if ($isEmbeddable) {
+        Write-Host "  Using embeddable Python directly ($ArchLabel)..."
+    } elseif (-not (Test-Path $venvDir)) {
         Write-Host "  Creating venv ($ArchLabel)..."
         & $PythonExe -m venv $venvDir
+        $py = Join-Path $venvDir "Scripts\python.exe"
+    } else {
+        $py = Join-Path $venvDir "Scripts\python.exe"
     }
-    $py = Join-Path $venvDir "Scripts\python.exe"
 
     # 2. Install dependencies
     Write-Host "  Installing dependencies ($ArchLabel)..."

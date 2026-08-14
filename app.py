@@ -382,14 +382,17 @@ def main() -> None:
 
     if backend_up:
         start_url = backend_state.url
+        start_html = None
         log.info("backend online, loading %s", start_url)
     else:
-        start_url = load_fallback_html(backend_state.url)
+        start_url = None
+        start_html = load_fallback_html(backend_state.url)
         log.info("backend offline, showing fallback")
 
     window = webview.create_window(
         APP_TITLE,
         start_url,
+        html=start_html,
         width=WINDOW_WIDTH,
         height=WINDOW_HEIGHT,
         min_size=WINDOW_MIN_SIZE,
