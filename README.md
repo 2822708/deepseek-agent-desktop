@@ -1,5 +1,8 @@
 # DeepSeek Agent 桌面版
 
+> 🚀 **最新版本 v1.1.0**：支持 **x64 + x86 双架构**，提供 **安装版 + 便携版** 两种分发方式。
+> 📦 [下载 Release](https://github.com/2822708/deepseek-agent-desktop/releases/latest) · 📋 [项目报告](PROJECT_REPORT.md)
+
 把 DeepSeek Harness 的 Web 界面（`http://127.0.0.1:3080`）包装成原生 Windows 桌面应用。
 
 - 内核：系统 WebView2 (EdgeChromium)，无需内置浏览器
