@@ -10,12 +10,16 @@ build/
 
 # Virtual Environment
 .venv/
+.venv-x86/
 venv/
 env/
 
 # PyInstaller
 *.spec.bak
 pyinstaller.log
+
+# Build tools (auto-downloaded by build-all.ps1)
+_tools/
 
 # Temporary downloads
 _tmpdl/
