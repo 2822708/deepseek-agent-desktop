@@ -40,3 +40,6 @@ Desktop.ini
 
 # Application runtime
 .dsh-desktop.log
+
+# GitHub Release upload helper (contains credentials when used locally)
+dev/upload_assets.py

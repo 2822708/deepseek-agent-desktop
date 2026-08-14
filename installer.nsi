@@ -78,45 +78,18 @@ Function CheckWebView2
 FunctionEnd
 
 Function CheckDotNet
+  ; pythonnet uses the built-in .NET Framework on Windows.
+  ; Check for .NET Framework 4.x via registry (present on Windows 10/11 by default).
   StrCpy $DotNetNeeded "0"
-  nsExec::ExecToStack 'dotnet --list-runtimes'
-  Pop $0
-  Pop $1
-  ${If} $0 != 0
-    StrCpy $DotNetNeeded "1"
-  ${Else}
-    Push $1
-    Push "Microsoft.WindowsDesktop"
-    Call StrStr
-    Pop $2
-    ${If} $2 == ""
+  ClearErrors
+  ReadRegStr $0 HKLM "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" "Version"
+  IfErrors 0 +3
+    ReadRegStr $0 HKLM "SOFTWARE\WOW6432Node\Microsoft\NET Framework Setup\NDP\v4\Full" "Version"
+    IfErrors 0 +1
       StrCpy $DotNetNeeded "1"
-    ${EndIf}
+  ${If} $0 == ""
+    StrCpy $DotNetNeeded "1"
   ${EndIf}
-FunctionEnd
-
-Function StrStr
-  Exch $R1
-  Exch
-  Exch $R2
-  Push $R3
-  Push $R4
-  Push $R5
-  StrLen $R3 $R1
-  StrCpy $R4 0
-  loop:
-    StrCpy $R5 $R2 $R3 $R4
-    StrCmp $R5 $R1 done
-    StrCmp $R5 "" done
-    IntOp $R4 $R4 + 1
-    Goto loop
-  done:
-  StrCpy $R1 $R2 "" $R4
-  Pop $R5
-  Pop $R4
-  Pop $R3
-  Pop $R2
-  Exch $R1
 FunctionEnd
 
 ; --- Append subfolder to user-selected path ---
@@ -166,30 +139,26 @@ Section "Install (required)" SecInstall
     DetailPrint "WebView2 Runtime already installed."
   ${EndIf}
 
-  ; --- .NET Desktop Runtime ---
-  DetailPrint "Checking .NET Desktop Runtime..."
+  ; --- .NET Framework 4.x (only for rare stripped-down systems) ---
+  DetailPrint "Checking .NET Framework..."
   Call CheckDotNet
   ${If} $DotNetNeeded == "1"
-    DetailPrint ".NET Desktop Runtime not found. Downloading..."
-    ${If} ${ARCH_LABEL} == "x64"
-      NSISdl::download "https://dot.net/v1/dotnet-desktop-win-x64.exe" "$TEMP\dotnet-desktop-runtime.exe"
-    ${Else}
-      NSISdl::download "https://dot.net/v1/dotnet-desktop-win-x86.exe" "$TEMP\dotnet-desktop-runtime.exe"
-    ${EndIf}
+    DetailPrint ".NET Framework 4.x not found. Downloading..."
+    NSISdl::download "https://go.microsoft.com/fwlink/?linkid=2088631" "$TEMP\ndp48-web.exe"
     Pop $R0
     ${If} $R0 == "success"
-      DetailPrint "Installing .NET Desktop Runtime..."
-      nsExec::ExecToLog '"$TEMP\dotnet-desktop-runtime.exe" /quiet /norestart'
+      DetailPrint "Installing .NET Framework 4.8..."
+      nsExec::ExecToLog '"$TEMP\ndp48-web.exe" /q /norestart'
       Pop $0
       ${If} $0 != 0
-        MessageBox MB_ICONEXCLAMATION ".NET Desktop Runtime installation may have failed (code $0).$\r$\nPlease install manually from:$\r$\nhttps://dotnet.microsoft.com/download/dotnet/8.0"
+        MessageBox MB_ICONEXCLAMATION ".NET Framework installation may have failed (code $0).$\r$\nPlease install manually from:$\r$\nhttps://dotnet.microsoft.com/download/dotnet-framework/net48"
       ${EndIf}
-      Delete "$TEMP\dotnet-desktop-runtime.exe"
+      Delete "$TEMP\ndp48-web.exe"
     ${Else}
-      MessageBox MB_ICONEXCLAMATION "Failed to download .NET Desktop Runtime.$\r$\nPlease install manually from:$\r$\nhttps://dotnet.microsoft.com/download/dotnet/8.0"
+      MessageBox MB_ICONEXCLAMATION "Failed to download .NET Framework (code $R0).$\r$\nPlease install manually from:$\r$\nhttps://dotnet.microsoft.com/download/dotnet-framework/net48"
     ${EndIf}
   ${Else}
-    DetailPrint ".NET Desktop Runtime already installed."
+    DetailPrint ".NET Framework already installed."
   ${EndIf}
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -222,8 +191,8 @@ Section "Auto-start with Windows" SecAutoStart
 SectionEnd
 
 ; --- Descriptions ---
-LangString DESC_SecInstall ${LANG_SIMPCHINESE} "DeepSeek Agent Desktop (with WebView2 and .NET runtime auto-install)"
-LangString DESC_SecInstall ${LANG_ENGLISH} "DeepSeek Agent Desktop core application (includes WebView2 and .NET runtime auto-install)"
+LangString DESC_SecInstall ${LANG_SIMPCHINESE} "DeepSeek Agent Desktop (with WebView2 and .NET Framework auto-install)"
+LangString DESC_SecInstall ${LANG_ENGLISH} "DeepSeek Agent Desktop core application (includes WebView2 and .NET Framework auto-install)"
 LangString DESC_SecDesktop ${LANG_SIMPCHINESE} "Create desktop shortcut"
 LangString DESC_SecDesktop ${LANG_ENGLISH} "Create a DeepSeek Agent shortcut on the Desktop"
 LangString DESC_SecAutoStart ${LANG_SIMPCHINESE} "Auto-start with Windows"

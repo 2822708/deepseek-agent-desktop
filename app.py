@@ -320,12 +320,21 @@ def _launch_backend_from_tray(state: BackendState) -> None:
 
 
 def _exit_app(window: webview.Window) -> None:
-    global _tray_icon
-    try:
-        if _tray_icon:
+    """退出应用：先停止托盘图标并等待其线程清理，再销毁窗口。"""
+    global _tray_icon, _tray_thread
+    if _tray_icon is not None:
+        try:
             _tray_icon.stop()
-    except Exception:
-        pass
+        except Exception:
+            log.exception("tray icon stop error")
+        # 等待托盘线程结束，确保图标已从通知区域移除，避免残影
+        # （若退出由托盘菜单触发，则回调本身就在该线程内，无需 join）
+        if _tray_thread is not None and _tray_thread is not threading.current_thread():
+            try:
+                _tray_thread.join(timeout=3.0)
+            except Exception:
+                pass
+        _tray_icon = None
     try:
         if window:
             window.destroy()

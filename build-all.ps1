@@ -6,13 +6,13 @@
 #   .\build-all.ps1 -Arch x64       # Build x64 only
 #   .\build-all.ps1 -Arch x86       # Build x86 only
 #   .\build-all.ps1 -SkipInstaller  # Portable only, skip NSIS
-#   .\build-all.ps1 -Proxy "http://192.168.19.1:7897"
+#   .\build-all.ps1 -Proxy "http://127.0.0.1:7890"   # Optional: specify a proxy
 
 param(
     [ValidateSet("all","x64","x86")]
     [string]$Arch = "all",
     [switch]$SkipInstaller,
-    [string]$Proxy = "http://192.168.19.1:7897"
+    [string]$Proxy = ""
 )
 
 $ErrorActionPreference = 'Stop'
@@ -189,6 +189,7 @@ function Build-Arch {
         --collect-all clr_loader `
         --collect-all pythonnet `
         --collect-all webview `
+        --hidden-import webview.platforms.edgechromium `
         --add-data "fallback.html;." `
         app.py
 

@@ -52,7 +52,7 @@ DeepSeek Agent Desktop 是基于 **pywebview + PyInstaller + NSIS** 的轻量级
 | pywebview / pystray / Pillow | ✅ | - |
 | VC++ Runtime (VCRUNTIME140.dll) | ✅ | - |
 | WebView2 COM 封装 | ✅ | 需 WebView2 Runtime |
-| ClrLoader.dll 原生库 | ✅ | 需 .NET Desktop Runtime |
+| ClrLoader.dll 原生库 | ✅ | 需 .NET Framework 4.x（Win10/11 默认已装）|
 
 ### 2.3 应用架构
 
@@ -145,7 +145,7 @@ NSIS 安装脚本在安装过程中自动检测：
 | 依赖 | 检测方式 | 自动安装源 |
 | --- | --- | --- |
 | WebView2 Runtime | 注册表 `EdgeUpdate\Clients\{F30...}` | `https://go.microsoft.com/fwlink/p/?LinkId=2124703` |
-| .NET Desktop Runtime | `dotnet --list-runtimes` 命令输出含 `Microsoft.WindowsDesktop` | `https://dot.net/v1/dotnet-desktop-{x64\|x86}.exe` |
+| .NET Framework 4.x | 注册表 `HKLM\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full` 的 `Version` 键 | `https://go.microsoft.com/fwlink/?linkid=2088631` |
 
 若目标电脑未联网，安装程序会弹窗提示手动安装链接。
 
@@ -162,7 +162,7 @@ NSIS 安装脚本在安装过程中自动检测：
        ↓
 [3] 安装程序检测运行时
        ├─ WebView2 Runtime 未安装？ → 自动下载并静默安装
-       └─ .NET Desktop Runtime 未安装？ → 自动下载并静默安装
+       └─ .NET Framework 4.x 未安装？ → 自动下载并静默安装（仅极少数精简系统）
        ↓
 [4] 安装主程序 + 创建快捷方式
        ↓

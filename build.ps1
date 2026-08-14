@@ -48,6 +48,7 @@ if ($Debug) {
         --collect-all clr_loader `
         --collect-all pythonnet `
         --collect-all webview `
+        --hidden-import webview.platforms.edgechromium `
         --add-data "fallback.html;." `
         app.py
 } else {
@@ -58,6 +59,7 @@ if ($Debug) {
         --collect-all clr_loader `
         --collect-all pythonnet `
         --collect-all webview `
+        --hidden-import webview.platforms.edgechromium `
         --add-data "fallback.html;." `
         app.py
 }

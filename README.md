@@ -15,20 +15,19 @@
 | --- | --- |
 | 操作系统 | Windows 10 1803+ / Windows 11（x64 或 x86） |
 | WebView2 Runtime | 渲染内核，Win11 和较新 Win10 已预装；旧系统需手动安装 |
-| .NET Desktop Runtime | pythonnet 依赖，安装版会自动检测安装；便携版需自行确保 |
+| .NET Framework | pythonnet 直接使用系统内置的 .NET Framework（Win10/11 自带 4.8），**一般无需额外安装** |
 
-> **安装版（Setup）** 会在安装时自动检测 WebView2 Runtime 和 .NET Desktop Runtime，
-> 若缺失则从微软官方服务器下载并静默安装。安装过程需要联网。
+> **安装版（Setup）** 会在安装时自动检测 WebView2 Runtime 和 .NET Framework，
+> 若缺失则从微软官方服务器下载并静默安装（仅极少数精简系统会触发）。安装过程需要联网。
 > 若自动安装失败（如无网络），会弹窗提示手动安装链接。
 >
-> **便携版（Portable ZIP）** 不包含运行时自动安装逻辑，请确保目标电脑已安装上述两个组件。
+> **便携版（Portable ZIP）** 不包含运行时自动安装逻辑，请确保目标电脑已安装 WebView2 Runtime。
 
 ### 手动安装运行时（便携版用户或自动安装失败时）
 
 | 组件 | 下载地址 |
 | --- | --- |
 | WebView2 Runtime | <https://developer.microsoft.com/microsoft-edge/webview2/> |
-| .NET 8 Desktop Runtime (x64) | <https://dotnet.microsoft.com/download/dotnet/8.0> |
 
 安装方法：下载后双击运行，按提示完成安装即可。
 
@@ -47,7 +46,7 @@
 
 1. 双击 `Setup-xxx.exe` 运行安装程序
 2. 选择安装目录（默认 `C:\Program Files\DeepSeek Agent`）
-3. 安装程序自动检测并安装 WebView2 Runtime 和 .NET Desktop Runtime（如缺失）
+3. 安装程序自动检测并安装 WebView2 Runtime（如缺失）
 4. 可选：勾选「开机自启」
 5. 安装完成后可立即启动
 
@@ -61,7 +60,7 @@
 | `DeepSeekAgentDesktop-1.1.0-Portable-x86.zip` | 32 位 |
 
 解压后双击 `DeepSeekAgentDesktop.exe` 即可运行，无需安装。
-但需确保系统已安装 WebView2 Runtime 和 .NET Desktop Runtime（见上文）。
+但需确保系统已安装 WebView2 Runtime（见上文）。
 
 ## 构建
 
@@ -69,13 +68,16 @@
 
 ```powershell
 # 构建全部（x64+x86，便携版+安装版）
-.\build-all.ps1 -Proxy "http://192.168.19.1:7897"
+.\build-all.ps1
 
 # 仅构建 x64
 .\build-all.ps1 -Arch x64
 
 # 仅便携版（跳过 NSIS 安装包）
 .\build-all.ps1 -SkipInstaller
+
+# 若网络下载超时（构建需下载 NSIS / Python x86），可显式指定代理
+.\build-all.ps1 -Proxy "http://127.0.0.1:7890"
 ```
 
 构建脚本会自动下载所需工具（NSIS、Python 3.11 x86 embeddable）到 `_tools/` 目录。
